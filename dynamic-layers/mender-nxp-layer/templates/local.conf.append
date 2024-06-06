@@ -1,0 +1,11 @@
+
+# Specific Congifuration for nitrogen8mp-som-mender
+MENDER_STORAGE_DEVICE:nitrogen8mp-som-mender = "/dev/mmcblk2"
+
+# Fix error "weston was skipped: missing required distro feature 'pam' (not in DISTRO_FEATURES)"
+DISTRO_FEATURES:append = " pam"
+
+# Need to slightly bump size on nitrogen8mp mender images, as we get error:
+# "Copying files into the device: __populate_fs: Could not allocate block in ext2 filesystem while writing file"
+MENDER_STORAGE_TOTAL_SIZE_MB:nitrogen8mp-smarc-mender = "4608"
+MENDER_STORAGE_TOTAL_SIZE_MB:nitrogen8mp-som-mender = "4608"
