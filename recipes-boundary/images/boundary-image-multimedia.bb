@@ -1,7 +1,7 @@
-# This image extends fsl-image-multimedia-full with additional
+# This image extends imx-image-multimedia with additional
 # Boundary Devices packages
 
-require recipes-fsl/images/fsl-image-multimedia-full.bb
+require recipes-fsl/images/imx-image-multimedia.bb
 
 IMAGE_INSTALL_WIFI_BT ?= "${IMAGE_INSTALL_WIFI_BT_PKGS}"
 IMAGE_INSTALL_WIFI_BT_PKGS = " \
@@ -51,8 +51,8 @@ CORE_IMAGE_EXTRA_INSTALL += " \
 "
 
 #Temporarily remove clutter demos, as there is a build error in cogl-1.0
-PACKAGE_IMX_TO_REMOVE_imxgpu2d = "clutter-1.0-examples clutter-1.0 clutter-gst-3.0 gtk+3-demo"
-PACKAGE_IMX_TO_REMOVE_imxgpu3d = "clutter-1.0-examples clutter-1.0 clutter-gst-3.0"
+#PACKAGE_IMX_TO_REMOVE_imxgpu2d = "clutter-1.0-examples clutter-1.0 clutter-gst-3.0 gtk+3-demo"
+#PACKAGE_IMX_TO_REMOVE_imxgpu3d = "clutter-1.0-examples clutter-1.0 clutter-gst-3.0"
 
 #FIX ME: build failing on 8mn, temporarily remove from image
-IMAGE_INSTALL:remove:mx8mn-nxp-bsp = " packagegroup-fsl-ml"
+#IMAGE_INSTALL:remove:mx8mn-nxp-bsp = " packagegroup-fsl-ml"
