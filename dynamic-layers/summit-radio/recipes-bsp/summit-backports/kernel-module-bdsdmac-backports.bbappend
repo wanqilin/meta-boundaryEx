@@ -1,4 +1,4 @@
-BACKPORTS_CONFIG = "regression-test"
+BACKPORTS_CONFIG = "bdimx6"
 
 addtask export_sources after do_patch before do_configure
 do_export_sources[depends] += "virtual/kernel:do_shared_workdir"
