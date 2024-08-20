@@ -193,5 +193,9 @@ if [ -d ../sources/meta-freescale ]; then
 fi
 
 cd  $BUILD_DIR
+
+# Remove meta-freescale-3rdparty from bblayers as it's no longer needed
+sed -i '\/${BSPDIR}\/sources\/meta-freescale-3rdparty/d' conf/bblayers.conf
+
 clean_up
 unset FSLDISTRO
