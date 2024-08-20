@@ -1,6 +1,6 @@
 COMPATIBLE_MACHINE = "(nitrogen6x|nitrogen6x-lite|nitrogen6sx|nitrogen7|nitrogen8m|nitrogen8mm|nitrogen8mn|nitrogen8mp|nitrogen8ulp|nitrogen93)"
 
-SRCREV = "af575fec07d9c4d27511acb83e6719172ac637c8"
+SRCREV = "6cefd7849ff30d43a17a38d4384de56123ae0c51"
 
 # In case of 8mp, kernel-module-isp-vvcam will build and cause the following error:
 # The recipe linux-boundary is trying to install files into a shared area when those files already exist (kernel-module-imx219)
