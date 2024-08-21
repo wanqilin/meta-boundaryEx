@@ -6,7 +6,7 @@ LIC_FILES_CHKSUM:nitrogen93 = "file://Licenses/README;md5=2ca5f2c35c8cc335f0a197
 PV = "v2022.04+git${SRCPV}"
 PV:nitrogen93 = "v2023.04+git${SRCPV}"
 
-SRCREV = "1c69998957efb2a9dcde024f33e9b73b84226560"
+SRCREV = "ae95e6c8f4474a1d5345913cae4da9f58f0f2c41"
 SRCREV:nitrogen93 = "73dcd1c420337fb86b1cfa480b82c9fe5bf620a7"
 
 SRCBRANCH = "boundary-v2022.04"
