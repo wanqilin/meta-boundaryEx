@@ -18,8 +18,6 @@ S = "${WORKDIR}/git"
 
 inherit deploy
 
-BOOT_TOOLS = "imx-boot-tools"
-
 ATF_PLATFORM        ?= "INVALID"
 ATF_PLATFORM:mx8mq-nxp-bsp   = "imx8mq"
 ATF_PLATFORM:mx8mm-nxp-bsp   = "imx8mm"
@@ -59,12 +57,6 @@ do_deploy() {
     fi
 }
 
-do_deploy:mx8ulp-nxp-bsp() {
-    install -Dm 0644 ${S}/build/${ATF_PLATFORM}/release/bl31.bin ${DEPLOYDIR}/${BOOT_TOOLS}/bl31-${ATF_PLATFORM}.bin
-    if ${BUILD_OPTEE}; then
-        install -m 0644 ${S}/build-optee/${ATF_PLATFORM}/release/bl31.bin ${DEPLOYDIR}/${BOOT_TOOLS}/bl31-${ATF_PLATFORM}.bin-optee
-    fi
-}
 addtask deploy after do_compile
 
 PACKAGE_ARCH = "${MACHINE_SOCARCH}"
