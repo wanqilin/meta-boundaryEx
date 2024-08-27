@@ -20,6 +20,7 @@ CORE_IMAGE_EXTRA_INSTALL += " \
 	can-utils \
 	e2fsprogs \
 	evtest \
+	fw-env-rules \
 	i2c-tools \
 	iperf3 \
 	iproute2 \
