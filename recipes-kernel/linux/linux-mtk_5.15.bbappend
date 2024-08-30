@@ -1,6 +1,6 @@
 LINUX_VERSION ?= "5.15.x-boundary"
 SRCBRANCH = "boundary-mtk-v5.15-dev"
-SRCREV = "4e990a1dccd8e1ad708d87eec0eecd33f1efa932"
+SRCREV = "ba3d2a6cd4fa1ac1dac0902009fc55cf3945f2c8"
 SRC_URI = "git://github.com/boundarydevices/linux.git;branch=${SRCBRANCH};protocol=https"
 
 KBUILD_DEFCONFIG = "boundary_defconfig"
