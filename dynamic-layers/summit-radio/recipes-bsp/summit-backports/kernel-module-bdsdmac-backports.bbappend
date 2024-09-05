@@ -10,5 +10,5 @@ do_export_sources() {
     # structures, due to kernel .h files being found before libc .h files.
     # if we grab just this one file from the source, and put it into our
     # file structure, everything holds together
-    install ${STAGING_KERNEL_DIR}/include/linux/stdarg.h  ${S}/drivers/net/wireless/laird/qcacld/CORE/VOSS/inc
+    install ${STAGING_KERNEL_DIR}/include/linux/stdarg.h  ${S}/drivers/net/wireless/summit/qcacld/CORE/VOSS/inc
 }
