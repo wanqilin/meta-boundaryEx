@@ -31,7 +31,7 @@ IMAGE_INSTALL_PARSEC = " \
     os-release \
     ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'optee-client optee-os', '', d)}"
    
-IMAGE_INSTALL_WIFI_BT ?= ""
+IMAGE_INSTALL_WIFI_BT ?= "${IMAGE_INSTALL_WIFI_BT_PKGS}"
 IMAGE_INSTALL_WIFI_BT_PKGS = " \
     bdsdmac-firmware \
     if573-sdio-firmware \

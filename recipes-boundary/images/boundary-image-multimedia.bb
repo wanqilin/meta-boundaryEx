@@ -3,7 +3,7 @@
 
 require recipes-fsl/images/imx-image-multimedia.bb
 
-IMAGE_INSTALL_WIFI_BT ?= ""
+IMAGE_INSTALL_WIFI_BT ?= "${IMAGE_INSTALL_WIFI_BT_PKGS}"
 IMAGE_INSTALL_WIFI_BT_PKGS = " \
     bdsdmac-firmware \
     if573-sdio-firmware \
