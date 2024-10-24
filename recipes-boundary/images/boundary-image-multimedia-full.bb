@@ -41,6 +41,8 @@ CORE_IMAGE_EXTRA_INSTALL += " \
 	v4l-utils \
 	wireless-regdb-static \
 "
+IMAGE_INSTALL:append = " boardtestapp qtbase qtdeclarative qtquickcontrols2 qtwayland qtmultimedia vulkan-loader\
+                         packagegroup-core-boot packagegroup-fsl-tools-gpu packagegroup-fsl-tools-gpu"
 
 #imx-gpu-viv-demos are not compatible with i.MX7
 IMAGE_INSTALL:remove:mx7-nxp-bsp = " imx-gpu-viv-demos"
