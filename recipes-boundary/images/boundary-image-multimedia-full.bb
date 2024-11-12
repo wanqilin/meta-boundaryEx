@@ -42,7 +42,7 @@ CORE_IMAGE_EXTRA_INSTALL += " \
 	wireless-regdb-static \
 "
 IMAGE_INSTALL:append = " boardtestapp qtbase qtdeclarative qtquickcontrols2 qtwayland qtmultimedia vulkan-loader\
-                         packagegroup-core-boot packagegroup-fsl-tools-gpu packagegroup-fsl-tools-gpu"
+                         packagegroup-core-boot packagegroup-fsl-tools-gpu packagegroup-fsl-tools-gpu fcs940r-driver bt-fcs940r-driver"
 
 #imx-gpu-viv-demos are not compatible with i.MX7
 IMAGE_INSTALL:remove:mx7-nxp-bsp = " imx-gpu-viv-demos"
