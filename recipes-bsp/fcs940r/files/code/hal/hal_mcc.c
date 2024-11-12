@@ -500,7 +500,6 @@ static void mcc_cfg_phdym_offload(_adapter *adapter, u8 enable)
 	struct sta_priv *stapriv = NULL;
 	struct sta_info *sta = NULL;
 	struct wlan_network *cur_network = NULL;
-	_irqL irqL;
 	_list	*head = NULL, *list = NULL;
 	u8 i = 0;
 
@@ -527,7 +526,7 @@ static void mcc_cfg_phdym_offload(_adapter *adapter, u8 enable)
 				break;
 			case MCC_ROLE_AP:
 			case MCC_ROLE_GO:
-				_enter_critical_bh(&stapriv->asoc_list_lock, &irqL);
+				rtw_stapriv_asoc_list_lock(stapriv);
 
 				head = &stapriv->asoc_list;
 				list = get_next(head);
@@ -538,7 +537,7 @@ static void mcc_cfg_phdym_offload(_adapter *adapter, u8 enable)
 					mcc_cfg_phdym_update_macid(iface, _TRUE, sta->cmn.mac_id);
 				}
 
-				_exit_critical_bh(&stapriv->asoc_list_lock, &irqL);
+				rtw_stapriv_asoc_list_unlock(stapriv);
 				break;
 			default:
 				RTW_INFO("Unknown role\n");
@@ -595,7 +594,6 @@ static void rtw_hal_config_mcc_role_setting(PADAPTER padapter, u8 order)
 	struct sta_priv *pstapriv = &padapter->stapriv;
 	struct sta_info *psta = NULL;
 	struct registry_priv *preg = &padapter->registrypriv;
-	_irqL irqL;
 	_list	*phead =NULL, *plist = NULL;
 	u8 policy_index = 0;
 	u8 mcc_duration = 0;
@@ -670,7 +668,7 @@ static void rtw_hal_config_mcc_role_setting(PADAPTER padapter, u8 order)
 
 			rtw_hal_mcc_assign_tx_threshold(padapter);
 
-			_enter_critical_bh(&pstapriv->asoc_list_lock, &irqL);
+			rtw_stapriv_asoc_list_lock(pstapriv);
 
 			phead = &pstapriv->asoc_list;
 			plist = get_next(phead);
@@ -685,7 +683,7 @@ static void rtw_hal_config_mcc_role_setting(PADAPTER padapter, u8 order)
 				#endif
 			}
 
-			_exit_critical_bh(&pstapriv->asoc_list_lock, &irqL);
+			rtw_stapriv_asoc_list_unlock(pstapriv);
 
 			psta = rtw_get_bcmc_stainfo(padapter);
 

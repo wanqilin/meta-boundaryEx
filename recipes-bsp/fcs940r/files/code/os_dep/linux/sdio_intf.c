@@ -1145,6 +1145,7 @@ static void rtw_dev_remove(struct sdio_func *func)
 		rtw_pm_set_lps(padapter, PS_MODE_ACTIVE);
 		LeaveAllPowerSaveMode(padapter);
 	}
+	rtw_intf_stop(padapter); /* Disable interrupt before set drv stopped */
 	rtw_set_drv_stopped(padapter);	/*for stop thread*/
 	rtw_stop_cmd_thread(padapter);
 #ifdef CONFIG_CONCURRENT_MODE

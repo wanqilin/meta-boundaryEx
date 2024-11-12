@@ -4161,6 +4161,11 @@ void halbtc8723d2ant_run_coexist_mechanism(IN struct btc_coexist *btcoexist)
 			   &under_4way);
 	btcoexist->btc_get(btcoexist, BTC_GET_BL_WIFI_BUSY, &wifi_busy);
 
+	/* coex-276  P2P-Go beacon request can't release issue
+	   Only PCIe can set 0x454[6] = 1 to solve this issue */
+	btcoexist->btc_write_1byte_bitmask(btcoexist, REG_CCK_CHECK,
+				     BIT_EN_BCN_PKT_REL, 0x1);
+
 	BTC_SPRINTF(trace_buf, BT_TMP_BUF_SIZE,
 			"[BTCoex], RunCoexistMechanism()===>\n");
 	BTC_TRACE(trace_buf);

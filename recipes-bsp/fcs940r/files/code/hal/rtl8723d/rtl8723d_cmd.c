@@ -304,9 +304,18 @@ void rtl8723d_download_rsvd_page(PADAPTER padapter, u8 mstatus)
 		RegFwHwTxQCtrl &= ~BIT(6);
 		rtw_write8(padapter, REG_FWHW_TXQ_CTRL + 2, RegFwHwTxQCtrl);
 
-		/* Clear beacon valid check bit. */
-		rtw_hal_set_hwreg(padapter, HW_VAR_BCN_VALID, NULL);
-		rtw_hal_set_hwreg(padapter, HW_VAR_DL_BCN_SEL, NULL);
+		/* 
+		* Always select bcn_queue_0 to download rsvd page
+		* Set REG_DWBCN0_CTRL 0x208[16] = 0x1
+		* Set REG_DWBCN1_CTRL 0x228[21:20] = 0x0
+		*/
+		v8 = rtw_read8(padapter, REG_TDECTRL + 2);
+		v8 |= BIT(0);
+		rtw_write8(padapter, REG_TDECTRL + 2, v8);
+
+		v8 = rtw_read8(padapter, REG_DWBCN1_CTRL_8723D + 2);
+		v8 &= ~(BIT(4) | BIT(5));
+		rtw_write8(padapter, REG_DWBCN1_CTRL_8723D + 2, v8);
 
 		DLBcnCount = 0;
 		poll = 0;
@@ -318,7 +327,11 @@ void rtl8723d_download_rsvd_page(PADAPTER padapter, u8 mstatus)
 				rtw_yield_os();
 				/* rtw_mdelay_os(10); */
 				/* check rsvd page download OK. */
-				rtw_hal_get_hwreg(padapter, HW_VAR_BCN_VALID, (u8 *)(&bcn_valid));
+
+				/* Always check bcn_queue_0 */
+				v8 = rtw_read8(padapter, REG_TDECTRL + 2);
+				bcn_valid = (BIT(0) & v8) ? _TRUE : _FALSE;
+
 				poll++;
 			} while (!bcn_valid && (poll % 10) != 0 && !RTW_CANNOT_RUN(padapter));
 

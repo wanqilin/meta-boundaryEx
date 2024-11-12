@@ -1442,7 +1442,6 @@ void rtw_mi_buddy_clone_bcmc_packet(_adapter *padapter, union recv_frame *precvf
 
 }
 
-#ifdef CONFIG_PCI_HCI
 /*API be created temporary for MI, caller is interrupt-handler, PCIE's interrupt handler cannot apply to multi-AP*/
 _adapter *rtw_mi_get_ap_adapter(_adapter *padapter)
 {
@@ -1462,7 +1461,6 @@ _adapter *rtw_mi_get_ap_adapter(_adapter *padapter)
 	}
 	return iface;
 }
-#endif
 
 u8 rtw_mi_get_ld_sta_ifbmp(_adapter *adapter)
 {

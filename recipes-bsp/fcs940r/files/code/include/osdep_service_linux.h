@@ -153,6 +153,14 @@
 
 #endif
 
+/*
+ * MLD related linux kernel patch in
+ * Android Common Kernel android13-5.15(5.15.41)
+ */
+#if (defined(__ANDROID_COMMON_KERNEL__) && (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 41)))
+        #define CONFIG_MLD_KERNEL_PATCH
+#endif
+
 typedef struct	semaphore _sema;
 typedef	spinlock_t	_lock;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37))
@@ -293,25 +301,26 @@ __inline static void _exit_critical_ex(_lock *plock, _irqL *pirqL)
 	spin_unlock_irqrestore(plock, *pirqL);
 }
 
-__inline static void _enter_critical_bh(_lock *plock, _irqL *pirqL)
+__inline static void _rtw_spinlock_bh(_lock *plock)
 {
 	spin_lock_bh(plock);
 }
 
-__inline static void _exit_critical_bh(_lock *plock, _irqL *pirqL)
+__inline static void _rtw_spinunlock_bh(_lock *plock)
 {
 	spin_unlock_bh(plock);
 }
 
-__inline static void enter_critical_bh(_lock *plock)
+__inline static int _rtw_spin_is_locked(_lock *plock)
 {
-	spin_lock_bh(plock);
+	return spin_is_locked(plock);
 }
 
-__inline static void exit_critical_bh(_lock *plock)
-{
-	spin_unlock_bh(plock);
-}
+#define enter_critical_bh(plock) _rtw_spinlock_bh(plock)
+#define exit_critical_bh(plock) _rtw_spinunlock_bh(plock)
+
+#define _enter_critical_bh(plock, pirqL) _rtw_spinlock_bh(plock)
+#define _exit_critical_bh(plock, pirqL) _rtw_spinunlock_bh(plock)
 
 __inline static int _enter_critical_mutex(_mutex *pmutex, _irqL *pirqL)
 {

@@ -849,7 +849,7 @@ odm_read_and_config_mp_8723d_phy_reg(struct dm_struct *dm)
 u32
 odm_get_version_mp_8723d_phy_reg(void)
 {
-	   return 43;
+	   return 44;
 }
 
 /******************************************************************************

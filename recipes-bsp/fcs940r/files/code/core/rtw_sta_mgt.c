@@ -190,15 +190,24 @@ void dump_st_ctl(void *sel, struct st_ctl_t *st_ctl)
 
 }
 
-void _rtw_init_stainfo(struct sta_info *psta);
-void _rtw_init_stainfo(struct sta_info *psta)
+static void _rtw_init_stainfo(struct sta_priv *stapriv, struct sta_info *psta)
 {
+	bool pool_init = psta->padapter ? false : true; /* called by _rtw_init_sta_priv() */
+
+#ifdef CONFIG_AP_MODE
+	if (!pool_init) {
+		rtw_warn_on(!rtw_is_list_empty(&psta->asoc_list));
+		rtw_warn_on(!rtw_is_list_empty(&psta->auth_list));
+	}
+#endif
+
 	_rtw_memset((u8 *)psta, 0, sizeof(struct sta_info));
+
+	psta->padapter = stapriv->padapter;
 
 	_rtw_spinlock_init(&psta->lock);
 	_rtw_init_listhead(&psta->list);
 	_rtw_init_listhead(&psta->hash_list);
-	/* _rtw_init_listhead(&psta->asoc_list); */
 	/* _rtw_init_listhead(&psta->sleep_list); */
 	/* _rtw_init_listhead(&psta->wakeup_list);	 */
 
@@ -255,7 +264,7 @@ u32	_rtw_init_sta_priv(struct	sta_priv *pstapriv)
 
 
 	for (i = 0; i < NUM_STA; i++) {
-		_rtw_init_stainfo(psta);
+		_rtw_init_stainfo(pstapriv, psta);
 
 		_rtw_init_listhead(&(pstapriv->sta_hash[i]));
 
@@ -535,9 +544,7 @@ struct	sta_info *rtw_alloc_stainfo(struct	sta_priv *pstapriv, const u8 *hwaddr)
 		rtw_list_delete(&(psta->list));
 
 		/* _exit_critical_bh(&(pfree_sta_queue->lock), &irqL); */
-		_rtw_init_stainfo(psta);
-
-		psta->padapter = pstapriv->padapter;
+		_rtw_init_stainfo(pstapriv, psta);
 
 		_rtw_memcpy(psta->cmn.mac_addr, hwaddr, ETH_ALEN);
 
@@ -823,12 +830,11 @@ u32	rtw_free_stainfo(_adapter *padapter , struct sta_info *psta)
 		rtw_release_macid(pstapriv->padapter, psta);
 
 #ifdef CONFIG_AP_MODE
+	rtw_stapriv_asoc_list_lock(pstapriv);
+	if (!rtw_is_list_empty(&psta->asoc_list))
+		rtw_stapriv_asoc_list_del(pstapriv, psta);
+	rtw_stapriv_asoc_list_unlock(pstapriv);
 
-	/*
-		_enter_critical_bh(&pstapriv->asoc_list_lock, &irqL0);
-		rtw_list_delete(&psta->asoc_list);
-		_exit_critical_bh(&pstapriv->asoc_list_lock, &irqL0);
-	*/
 	_enter_critical_bh(&pstapriv->auth_list_lock, &irqL0);
 	if (!rtw_is_list_empty(&psta->auth_list)) {
 		rtw_list_delete(&psta->auth_list);
@@ -875,6 +881,7 @@ u32	rtw_free_stainfo(_adapter *padapter , struct sta_info *psta)
 
 	rtw_st_ctl_deinit(&psta->st_ctl);
 
+	psta->is_freeing = false;
 	if (is_pre_link_sta == _FALSE) {
 		_rtw_spinlock_free(&psta->lock);
 
@@ -942,21 +949,14 @@ exit:
 }
 
 /* any station allocated can be searched by hash list */
-struct sta_info *rtw_get_stainfo(struct sta_priv *pstapriv, const u8 *hwaddr)
+static struct sta_info *_rtw_get_stainfo(struct sta_priv *pstapriv, const u8 *hwaddr, bool to_free)
 {
-
 	_irqL	 irqL;
-
 	_list	*plist, *phead;
-
 	struct sta_info *psta = NULL;
-
 	u32	index;
-
 	const u8 *addr;
-
 	u8 bc_addr[ETH_ALEN] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-
 
 	if (hwaddr == NULL)
 		return NULL;
@@ -973,13 +973,13 @@ struct sta_info *rtw_get_stainfo(struct sta_priv *pstapriv, const u8 *hwaddr)
 	phead = &(pstapriv->sta_hash[index]);
 	plist = get_next(phead);
 
-
 	while ((rtw_end_of_queue_search(phead, plist)) == _FALSE) {
-
 		psta = LIST_CONTAINOR(plist, struct sta_info, hash_list);
 
 		if ((_rtw_memcmp(psta->cmn.mac_addr, addr, ETH_ALEN)) == _TRUE) {
 			/* if found the matched address */
+			if (to_free)
+				psta->is_freeing = true;
 			break;
 		}
 		psta = NULL;
@@ -987,8 +987,31 @@ struct sta_info *rtw_get_stainfo(struct sta_priv *pstapriv, const u8 *hwaddr)
 	}
 
 	_exit_critical_bh(&pstapriv->sta_hash_lock, &irqL);
-	return psta;
 
+	return psta;
+}
+
+struct sta_info *rtw_get_stainfo(struct sta_priv *stapriv, const u8 *hwaddr)
+{
+	return _rtw_get_stainfo(stapriv, hwaddr, false);
+}
+
+struct sta_info *rtw_get_stainfo_to_free(struct sta_priv *stapriv, const u8 *hwaddr)
+{
+	return _rtw_get_stainfo(stapriv, hwaddr, true);
+}
+
+void rtw_stainfo_claim_to_free_no_lock(struct sta_info *sta)
+{
+	if (!rtw_is_list_empty(&sta->hash_list))
+		sta->is_freeing = true;
+}
+
+void rtw_stainfo_claim_to_free(struct sta_info *sta)
+{
+	_rtw_spinlock_bh(&sta->padapter->stapriv.sta_hash_lock);
+	rtw_stainfo_claim_to_free_no_lock(sta);
+	_rtw_spinunlock_bh(&sta->padapter->stapriv.sta_hash_lock);
 }
 
 u32 rtw_init_bcmc_stainfo(_adapter *padapter)
@@ -1093,6 +1116,39 @@ void dump_aid_status(void *sel, _adapter *adapter)
 	RTW_PRINT_SEL(sel, "%2d %11d\n", stapriv->rr_aid, stapriv->started_aid);
 
 	rtw_mfree(aid_bmp, stapriv->aid_bmp_len);
+}
+
+void rtw_stapriv_asoc_list_lock(struct sta_priv *stapriv)
+{
+	_rtw_spinlock_bh(&stapriv->asoc_list_lock);
+}
+
+void rtw_stapriv_asoc_list_unlock(struct sta_priv *stapriv)
+{
+	_rtw_spinunlock_bh(&stapriv->asoc_list_lock);
+}
+
+void rtw_stapriv_asoc_list_add(struct sta_priv *stapriv, struct sta_info *sta)
+{
+	rtw_warn_on(!_rtw_spin_is_locked(&stapriv->asoc_list_lock));
+	rtw_list_insert_tail(&sta->asoc_list, &stapriv->asoc_list);
+	stapriv->asoc_list_cnt++;
+#ifdef CONFIG_RTW_TOKEN_BASED_XMIT
+	if (sta->tbtx_enable)
+		stapriv->tbtx_asoc_list_cnt++;
+#endif
+}
+
+void rtw_stapriv_asoc_list_del(struct sta_priv *stapriv, struct sta_info *sta)
+{
+	rtw_warn_on(!_rtw_spin_is_locked(&stapriv->asoc_list_lock));
+	rtw_list_delete(&sta->asoc_list);
+	stapriv->asoc_list_cnt--;
+#ifdef CONFIG_RTW_TOKEN_BASED_XMIT
+	if (sta->tbtx_enable)
+		stapriv->tbtx_asoc_list_cnt--;
+#endif
+	STA_SET_MESH_PLINK(sta, NULL);
 }
 #endif /* CONFIG_AP_MODE */
 

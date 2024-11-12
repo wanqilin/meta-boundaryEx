@@ -46,16 +46,24 @@ void phydm_mp_set_single_tone_jgr3(void *dm_void, boolean is_single_tone,
 
 	switch (path) {
 	case RF_PATH_A:
+#if (defined(PHYDM_COMPILE_ABOVE_2SS))
 	case RF_PATH_B:
+#endif
+#if (defined(PHYDM_COMPILE_ABOVE_3SS))
 	case RF_PATH_C:
+#endif
+#if (defined(PHYDM_COMPILE_ABOVE_4SS))
 	case RF_PATH_D:
+#endif
 		start = path;
 		end = path;
 		break;
+#if (defined(PHYDM_COMPILE_ABOVE_2SS))
 	case RF_PATH_AB:
 		start = RF_PATH_A;
 		end = RF_PATH_B;
 		break;
+#endif
 #if (defined(PHYDM_COMPILE_IC_4SS))
 	case RF_PATH_AC:
 		start = RF_PATH_A;
@@ -111,23 +119,26 @@ void phydm_mp_set_single_tone_jgr3(void *dm_void, boolean is_single_tone,
 	if (is_single_tone) {
 		/*Disable CCA*/
 		if (is_2g_ch) { /*CCK RxIQ weighting = [0,0]*/
-			if(dm->support_ic_type & ODM_RTL8723F) {
-				odm_set_bb_reg(dm, R_0x2a24, BIT(13), 0x1); /*CCK*/
-			} else {
+			if(!(dm->support_ic_type & (ODM_RTL8723F | ODM_RTL8735B | ODM_RTL8730A))) {
 				odm_set_bb_reg(dm, R_0x1a9c, BIT(20), 0x0);
 				odm_set_bb_reg(dm, R_0x1a14, 0x300, 0x3);
 			}
 		}
-		odm_set_bb_reg(dm, R_0x1d58, 0xff8, 0x1ff); /*OFDM*/
-		if (dm->support_ic_type & ODM_RTL8723F) {
+		/*Disable CCK CCA*/
+		if(dm->support_ic_type & (ODM_RTL8723F | ODM_RTL8735B | ODM_RTL8730A))
+			odm_set_bb_reg(dm, R_0x2a24, BIT(13), 0x1);
+		/*Disable OFDM CCA*/
+		odm_set_bb_reg(dm, R_0x1d58, 0xff8, 0x1ff);
+
+		if (dm->support_ic_type & (ODM_RTL8723F | ODM_RTL8735B | ODM_RTL8730A)) {
 			for (i = start; i <= end; i++) {
 				if (i < max_rf_path) {
 					odm_set_rf_reg(dm, i, RF_0x5, BIT(0), 0x0);
-					mp->rf0[i] = odm_get_rf_reg(dm, i, RF_0x0, RFREG_MASK);
+					mp->rf0[RF_PATH_MEM_SIZE-1] = odm_get_rf_reg(dm, i, RF_0x0, RFREG_MASK);
 					/*Tx mode: RF0x00[19:16]=4'b0010 */
 					odm_set_rf_reg(dm, i, RF_0x0, 0xF0000, 0x2);
 					/*Lowest RF gain index: RF_0x1[5:0] TX power*/
-					mp->rf1[i] = odm_get_rf_reg(dm, i, RF_0x1, RFREG_MASK);
+					mp->rf1[RF_PATH_MEM_SIZE-1] = odm_get_rf_reg(dm, i, RF_0x1, RFREG_MASK);
 					odm_set_rf_reg(dm, i, RF_0x1, 0x3f, 0x0);//TX power
 					/*RF LO enabled */
 					odm_set_rf_reg(dm, i, RF_0x58, BIT(1), 0x1);
@@ -146,9 +157,9 @@ void phydm_mp_set_single_tone_jgr3(void *dm_void, boolean is_single_tone,
 				}
 			}
 		}
-		
+
 		#if (RTL8814B_SUPPORT)
-		if (dm->support_ic_type & ODM_RTL8814B) {
+		if (dm->support_ic_type & (ODM_RTL8814B | ODM_RTL8814C)) {
 			mp->rf0_syn[RF_SYN0] = config_phydm_read_syn_reg_8814b(
 					       dm, RF_SYN0, RF_0x0, RFREG_MASK);
 			/*Lowest RF gain index: RF_0x0[4:0] = 0x0*/
@@ -174,20 +185,22 @@ void phydm_mp_set_single_tone_jgr3(void *dm_void, boolean is_single_tone,
 	} else {
 		/*Enable CCA*/
 		if (is_2g_ch) { /*CCK RxIQ weighting = [1,1]*/
-			if(dm->support_ic_type & ODM_RTL8723F) {
-				odm_set_bb_reg(dm, R_0x2a24, BIT(13), 0x0); /*CCK*/ 
-			} else {
+			if(!(dm->support_ic_type & (ODM_RTL8723F | ODM_RTL8735B | ODM_RTL8730A))) {
 				odm_set_bb_reg(dm, R_0x1a9c, BIT(20), 0x1);
 				odm_set_bb_reg(dm, R_0x1a14, 0x300, 0x0);
 			}
 		}
-		odm_set_bb_reg(dm, R_0x1d58, 0xff8, 0x0); /*OFDM*/
+		/*Enable CCK CCA*/
+		if(dm->support_ic_type & (ODM_RTL8723F | ODM_RTL8735B | ODM_RTL8730A))
+			odm_set_bb_reg(dm, R_0x2a24, BIT(13), 0x0);
+		/*Enable OFDM CCA*/
+		odm_set_bb_reg(dm, R_0x1d58, 0xff8, 0x0);
 
-		if(dm->support_ic_type & ODM_RTL8723F) {
+		if(dm->support_ic_type & (ODM_RTL8723F | ODM_RTL8735B | ODM_RTL8730A)) {
 			for (i = start; i <= end; i++) {
 				if (i < max_rf_path) {
-					odm_set_rf_reg(dm, i, RF_0x0, RFREG_MASK, mp->rf0[i]);
-					odm_set_rf_reg(dm, i, RF_0x1, RFREG_MASK, mp->rf1[i]);
+					odm_set_rf_reg(dm, i, RF_0x0, RFREG_MASK, mp->rf0[RF_PATH_MEM_SIZE-1]);
+					odm_set_rf_reg(dm, i, RF_0x1, RFREG_MASK, mp->rf1[RF_PATH_MEM_SIZE-1]);
 					/*RF LO disabled */
 					odm_set_rf_reg(dm, i, RF_0x58, BIT(1), 0x0);
 					odm_set_rf_reg(dm, i, RF_0x5, BIT(0), 0x1);
@@ -203,7 +216,7 @@ void phydm_mp_set_single_tone_jgr3(void *dm_void, boolean is_single_tone,
 			}
 		}
 		#if (RTL8814B_SUPPORT)
-		if (dm->support_ic_type & ODM_RTL8814B) {
+		if (dm->support_ic_type & (ODM_RTL8814B | ODM_RTL8814C)) {
 			config_phydm_write_rf_syn_8814b(dm, RF_SYN0, RF_0x0,
 							RFREG_MASK,
 							mp->rf0_syn[RF_SYN0]);
@@ -236,7 +249,7 @@ void phydm_mp_set_carrier_supp_jgr3(void *dm_void, boolean is_carrier_supp,
 			if (!odm_get_bb_reg(dm, R_0x1c3c, BIT(1)))
 				odm_set_bb_reg(dm, R_0x1c3c, BIT(1), 1);
 
-			if(dm->support_ic_type & ODM_RTL8723F){
+			if(dm->support_ic_type & (ODM_RTL8723F | ODM_RTL8735B | ODM_RTL8730A)){
 				/* @Carrier suppress tx */
 				odm_set_bb_reg(dm, R_0x2a08, BIT(18), 0x1);
 				/*turn off scramble setting */
@@ -253,9 +266,9 @@ void phydm_mp_set_carrier_supp_jgr3(void *dm_void, boolean is_carrier_supp,
 			else {
 				/*Turn Off All Test mode */
 				odm_set_bb_reg(dm, R_0x1ca4, 0x7, 0x0);
-				
+
 				/*transmit mode */
-				odm_set_bb_reg(dm, R_0x1a00, 0x3, 0x2);	
+				odm_set_bb_reg(dm, R_0x1a00, 0x3, 0x2);
 				/*turn off scramble setting */
 				odm_set_bb_reg(dm, R_0x1a00, BIT(3), 0x0);
 				/*Set CCK Tx Test Rate, set TxRate to 1Mbps */
@@ -264,7 +277,7 @@ void phydm_mp_set_carrier_supp_jgr3(void *dm_void, boolean is_carrier_supp,
 		}
 	} else { /*Stop Carrier Suppression. */
 		if (phydm_is_cck_rate(dm, (u8)rate_index)) {
-			if(dm->support_ic_type & ODM_RTL8723F) {
+			if(dm->support_ic_type & (ODM_RTL8723F | ODM_RTL8735B | ODM_RTL8730A)) {
 				/* TX Stop */
 				odm_set_bb_reg(dm, R_0x2a00, BIT(0), 0x1);
 				/* Clear BB cont tx */
@@ -280,7 +293,7 @@ void phydm_mp_set_carrier_supp_jgr3(void *dm_void, boolean is_carrier_supp,
 			}
 			else {
 				/*normal mode */
-				odm_set_bb_reg(dm, R_0x1a00, 0x3, 0x0);			
+				odm_set_bb_reg(dm, R_0x1a00, 0x3, 0x0);
 				/*turn on scramble setting */
 				odm_set_bb_reg(dm, R_0x1a00, BIT(3), 0x1);
 			}
@@ -300,8 +313,8 @@ void phydm_mp_set_single_carrier_jgr3(void *dm_void, boolean is_single_carrier)
 		/*1. if OFDM block on? */
 		if (!odm_get_bb_reg(dm, R_0x1c3c, BIT(0)))
 			odm_set_bb_reg(dm, R_0x1c3c, BIT(0), 1);
-		
-		if (dm->support_ic_type & ODM_RTL8723F) {
+
+		if (dm->support_ic_type & (ODM_RTL8723F | ODM_RTL8735B | ODM_RTL8730A)) {
 			/*3. turn on scramble setting */
 			odm_set_bb_reg(dm, R_0x2a04, BIT(5), 0);
 			/*4. Turn On single carrier. */
@@ -346,14 +359,14 @@ void phydm_mp_get_rx_ok_jgr3(void *dm_void)
 
 	u32 cck_ok = 0, ofdm_ok = 0, ht_ok = 0, vht_ok = 0;
 	u32 cck_err = 0, ofdm_err = 0, ht_err = 0, vht_err = 0;
-	if(dm->support_ic_type & ODM_RTL8723F)
+	if(dm->support_ic_type & (ODM_RTL8723F | ODM_RTL8735B | ODM_RTL8730A))
 		cck_ok = odm_get_bb_reg(dm, R_0x2aac, MASKLWORD);
 	else
 		cck_ok = odm_get_bb_reg(dm, R_0x2c04, MASKLWORD);
 	ofdm_ok = odm_get_bb_reg(dm, R_0x2c14, MASKLWORD);
 	ht_ok = odm_get_bb_reg(dm, R_0x2c10, MASKLWORD);
 	vht_ok = odm_get_bb_reg(dm, R_0x2c0c, MASKLWORD);
-	if(dm->support_ic_type & ODM_RTL8723F)
+	if(dm->support_ic_type & (ODM_RTL8723F | ODM_RTL8735B | ODM_RTL8730A))
 		cck_err = odm_get_bb_reg(dm, R_0x2aac, MASKHWORD);
 	else
 		cck_err = odm_get_bb_reg(dm, R_0x2c04, MASKHWORD);

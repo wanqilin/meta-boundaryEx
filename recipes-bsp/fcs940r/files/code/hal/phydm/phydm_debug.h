@@ -31,8 +31,8 @@
 /*#define DEBUG_VERSION	"1.3"*/ /*2016.04.28 YuChen*/
 /*#define DEBUG_VERSION	"1.4"*/ /*2017.03.13 Dino*/
 /*#define DEBUG_VERSION "2.0"*/ /*2018.01.10 Dino*/
-/*2020.07.03 fix cck report bug due to 8723F coding error*/
-#define DEBUG_VERSION "4.6"
+/*2022.08.19 fix small bw is printed in phydm log*/
+#define DEBUG_VERSION "4.7"
 
 /*@
  * ============================================================
@@ -452,7 +452,7 @@ void phydm_basic_dbg_message(void *dm_void);
 
 void phydm_basic_profile(void *dm_void, u32 *_used, char *output,
 			 u32 *_out_len);
-#if (DM_ODM_SUPPORT_TYPE & (ODM_CE | ODM_AP))
+#if (DM_ODM_SUPPORT_TYPE & (ODM_CE | ODM_AP | ODM_IOT))
 s32 phydm_cmd(struct dm_struct *dm, char *input, u32 in_len, u8 flag,
 	      char *output, u32 out_len);
 #endif

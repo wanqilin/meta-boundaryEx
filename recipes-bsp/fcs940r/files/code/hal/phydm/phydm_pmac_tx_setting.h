@@ -26,8 +26,8 @@
 #ifndef __PHYDM_PMAC_TX_SETTING_H__
 #define __PHYDM_PMAC_TX_SETTING_H__
 
-/*2020.03.16 Fix TxInfo content in B mode*/
-#define PMAC_TX_SETTING_VERSION "2.1"
+/*2022.07.18 Add pwdB API for Amazon*/
+#define PMAC_TX_SETTING_VERSION "2.2"
 
 /* 1 ============================================================
  * 1  Definition
@@ -106,6 +106,10 @@ void phydm_set_pmac_tx(void *dm_void, struct phydm_pmac_info *tx_info,
 
 void phydm_set_tmac_tx(void *dm_void);
 
+void phydm_set_cck_disable_cca_jgr3(void *dm_void, boolean value);
+
 void phydm_pmac_tx_dbg(void *dm_void, char input[][16], u32 *_used,
 		       char *output, u32 *_out_len);
+
+s8 phydm_get_pwdB(void *dm_void, boolean is_cck_rate, enum rf_path path);
 #endif

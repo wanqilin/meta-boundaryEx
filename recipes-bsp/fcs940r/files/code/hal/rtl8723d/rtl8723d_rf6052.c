@@ -72,6 +72,12 @@ PHY_RF6052SetBandwidth8723D(
 		enum channel_width Bandwidth)	/* 20M or 40M */
 {
 	HAL_DATA_TYPE *pHalData = GET_HAL_DATA(padapter);
+	char alpha2[3] = {0};
+
+	if (adapter_to_rfctl(padapter)->country_ent->alpha2)
+	{
+		_rtw_memcpy(alpha2, adapter_to_rfctl(padapter)->country_ent->alpha2, 2);
+	}
 
 	switch (Bandwidth) {
 	case CHANNEL_WIDTH_20:
@@ -81,6 +87,34 @@ PHY_RF6052SetBandwidth8723D(
 		*/
 		pHalData->RfRegChnlVal[0] = ((pHalData->RfRegChnlVal[0] & 0xfffff3ff) | BIT(10) | BIT(11));
 		phy_set_rf_reg(padapter, RF_PATH_A, 0x18, bRFRegOffsetMask, pHalData->RfRegChnlVal[0]); /* RF TRX_BW */
+
+		/* SRRC */
+		if (_rtw_memcmp(alpha2, "CN", 2) == _TRUE
+			&& (phy_is_tx_power_limit_needed(padapter)
+				#ifdef CONFIG_MP_INCLUDED
+				|| rtw_mp_mode_check(padapter)
+				#endif
+			)
+		) {
+			/* SRRC certification for band edge to be more strict, It is for both RFE Type S0(RF_PATH_B) & S1(RF_PATH_A)
+			   setting BB & RF reg only for CH_13 & BW=20M */
+			if (pHalData->current_channel == 13)
+			{
+				//pageA only for CCK
+				phy_set_bb_reg(padapter, R_0xa20, bMaskDWord, 0xf8fe0001);
+				phy_set_bb_reg(padapter, R_0xa24, bMaskDWord, 0x64b80c1c);
+				phy_set_bb_reg(padapter, R_0xa28, bMaskDWord, 0x8810);
+				phy_set_bb_reg(padapter, R_0xaac, bMaskDWord, 0x01235667);
+
+				//pageC for OFDM
+				phy_set_bb_reg(padapter, rOFDM0_TxFlexCoeff0, bMaskDWord, 0X80043187);
+				phy_set_bb_reg(padapter, rOFDM0_TxFlexCoeff5, bMaskDWord, 0X00000FC0);
+
+				/* setting RF reg for BW=20M/40M */
+				phy_set_rf_reg(padapter, RF_PATH_A, RF_0xde, BIT(1), 1);
+				phy_set_rf_reg(padapter, RF_PATH_A, RF_RX_BB1, BIT(5)| BIT(4)| BIT(3)|BIT(2)|BIT(1)|BIT(0), 0x27);
+			}
+		}
 		break;
 	case CHANNEL_WIDTH_40:
 		/*
@@ -89,6 +123,24 @@ PHY_RF6052SetBandwidth8723D(
 		*/
 		pHalData->RfRegChnlVal[0] = ((pHalData->RfRegChnlVal[0] & 0xfffff3ff) | BIT(10));
 		phy_set_rf_reg(padapter, RF_PATH_A, 0x18, bRFRegOffsetMask, pHalData->RfRegChnlVal[0]); /* RF TRX_BW */
+
+		/* SRRC */
+		if (_rtw_memcmp(alpha2, "CN", 2) == _TRUE
+			&& (phy_is_tx_power_limit_needed(padapter)
+				#ifdef CONFIG_MP_INCLUDED
+				|| rtw_mp_mode_check(padapter)
+				#endif
+			)
+		) {
+			/* SRRC certification for band edge to be more strict, It is for both RFE Type S0(RF_PATH_B) & S1(RF_PATH_A)
+			   setting BB reg val to default value which is from array_mp_8723d_phy_reg[] only for CH_11 & BW=40M */
+			if (pHalData->current_channel == 11)
+			{
+				/* setting RF reg for BW=20M/40M */
+				phy_set_rf_reg(padapter, RF_PATH_A, RF_0xde, BIT(1), 1);
+				phy_set_rf_reg(padapter, RF_PATH_A, RF_RX_BB1, BIT(5)| BIT(4)| BIT(3)|BIT(2)|BIT(1)|BIT(0), 0x27);
+			}
+		}
 		break;
 	default:
 		break;

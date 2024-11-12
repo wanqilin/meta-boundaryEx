@@ -12118,8 +12118,17 @@ static void _rtw_hal_set_fw_rsvd_page(_adapter *adapter, bool finished, u8 *page
 	BufIndex = TxDescOffset;
 
 	/*======== beacon content =======*/
-	rtw_hal_construct_beacon(adapter,
-				 &ReservedPagePacket[BufIndex], &BeaconLength);
+	if (MLME_IS_STA(adapter) && DEV_AP_NUM(adapter_to_dvobj(adapter))) {
+		/* AP mode start before STA mode connect to AP, so use AP mode to construct beacon content */
+		_adapter *ap_iface;
+		ap_iface = rtw_mi_get_ap_adapter(adapter);
+		RTW_INFO("Use AP mode to construct beacon content\n");
+		rtw_hal_construct_beacon(ap_iface,
+					 &ReservedPagePacket[BufIndex], &BeaconLength);
+	} else {
+		rtw_hal_construct_beacon(adapter,
+					 &ReservedPagePacket[BufIndex], &BeaconLength);
+	}
 
 	/*
 	* When we count the first page size, we need to reserve description size for the RSVD

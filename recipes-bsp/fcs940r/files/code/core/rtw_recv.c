@@ -4884,6 +4884,7 @@ thread_return rtw_recv_thread(thread_context context)
 		err = _rtw_down_sema(&recvpriv->recv_sema);
 		if (_FAIL == err) {
 			RTW_ERR(FUNC_ADPT_FMT" down recv_sema fail!\n", FUNC_ADPT_ARG(adapter));
+			flush_signals_thread();
 			goto exit;
 		}
 

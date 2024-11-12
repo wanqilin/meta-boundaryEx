@@ -176,7 +176,7 @@ void phydm_fw_fix_rate(void *dm_void, u8 en, u8 macid, u8 bw, u8 rate)
 			reg_u32_tmp = BYTE_2_DWORD(0x60, macid, bw, rate);
 		else
 			reg_u32_tmp = 0x40000000;
-		if (dm->support_ic_type & ODM_RTL8814B)
+		if (dm->support_ic_type & (ODM_RTL8814B | ODM_RTL8814C))
 			odm_set_mac_reg(dm, R_0x448, MASKDWORD, reg_u32_tmp);
 		else
 			odm_set_mac_reg(dm, R_0x450, MASKDWORD, reg_u32_tmp);
@@ -189,6 +189,63 @@ void phydm_fw_fix_rate(void *dm_void, u8 en, u8 macid, u8 bw, u8 rate)
 	} else {
 		PHYDM_DBG(dm, ODM_COMP_API, "Auto Rate\n");
 	}
+}
+
+ /* Following feature is only for AmebaPro2 Arlo customized*/
+void phydm_fw_fix_rate_once(void *dm_void, u8 macid, u8 bw, u8 rate)
+{  
+ /*this feature is only for AmebaPro2 Arlo customized*/
+    struct dm_struct *dm = (struct dm_struct *)dm_void;
+    u32 reg_u32_tmp;
+
+    reg_u32_tmp = BYTE_2_DWORD(0x80, macid, bw, rate);
+    odm_set_mac_reg(dm, R_0x450, MASKDWORD, reg_u32_tmp);
+    PHYDM_DBG(dm, ODM_COMP_API, "FW fix TX rate Once[id =%d], %dM, Rate(%d)=", macid,
+              (20 << bw), rate);
+    phydm_print_rate(dm, rate, ODM_COMP_API);
+}
+
+void phydm_set_max_sup_rate(void *dm_void, u8 en, u8 max_rate)
+{
+	struct dm_struct *dm = (struct dm_struct *)dm_void;
+	struct ra_table *ra_t = &dm->dm_ra_table;
+
+	PHYDM_DBG(dm, DBG_RA_MASK, "%s ======>\n", __func__);
+
+	ra_t->ra_mask_force_update = 1;
+
+	if (en)
+		ra_t->max_sup_rate = max_rate;
+	else	
+		ra_t->max_sup_rate = ODM_MAXRATE;
+	
+	PHYDM_DBG(dm, DBG_RA_MASK, "User Force en: %d, MaxRate: 0x%x\n", en, max_rate);
+}
+
+/* Above feature is only for AmebaPro2 Arlo customized*/
+
+void phydm_set_ramask_byrssi(void *dm_void, u8 en)
+{
+	struct dm_struct *dm = (struct dm_struct *)dm_void;
+	struct ra_table *ra_t = &dm->dm_ra_table;
+
+	PHYDM_DBG(dm, DBG_RA_MASK, "%s ======>\n", __func__);
+
+	ra_t->ra_mask_force_update = 1;
+	
+	if (en)
+            ra_t->ra_ramask_byrssi = 1;
+	else
+            ra_t->ra_ramask_byrssi = 0;
+
+	PHYDM_DBG(dm, DBG_RA_MASK, "User Enable RaMask by RSSI: %x\n", en);
+}
+
+void phydm_set_tssi_avg(void *dm_void,  u8 en, u8 avgnum) {
+	struct dm_struct *dm = (struct dm_struct *)dm_void;
+	struct ra_table *ra_tab = &dm->dm_ra_table;
+	ra_tab->ra_tssi_dyn_avg_en = en ;
+	ra_tab->ra_tssi_dyn_avg_num = avgnum;
 }
 
 void phydm_ra_debug(void *dm_void, char input[][16], u32 *_used, char *output,
@@ -223,6 +280,10 @@ void phydm_ra_debug(void *dm_void, char input[][16], u32 *_used, char *output,
 		PDM_SNPF(out_len, used, output + used, out_len - used,
 			 "{5} {0:dis, 1:en}{th; 255:auto, xx:dB}: Tx CLS\n");
 #endif
+		PDM_SNPF(out_len, used, output + used, out_len - used,
+			 "{6} {0:dis, 1:en}{MAX Support Rate}\n");
+		PDM_SNPF(out_len, used, output + used, out_len - used,
+			 "{7} {0:dis, 1:en}{Avg Num}:CCK TSSI Avg num\n");
 	} else if (var[0] == 1) { /*@Adjust PCR offset*/
 
 		if (var[1] == 100) {
@@ -293,6 +354,14 @@ void phydm_ra_debug(void *dm_void, char input[][16], u32 *_used, char *output,
 				 tx_cls_en);
 		}
 #endif
+	} else if (var[0] == 6) { /*@RA User Define Max Rate*/
+		phydm_set_max_sup_rate(dm_void,(u8)var[1],(u8)var[2]);
+		PDM_SNPF(out_len, used, output + used, out_len - used,
+		"[Set Max Rate] en=%d, max rate=0x%x\n", (u8)var[1],(u8)var[2]);
+	} else if (var[0] == 7) { /*@ Dynamic CCK TSSI Avg Num*/
+		phydm_set_tssi_avg(dm_void,(u8)var[1],(u8)var[2]);
+		PDM_SNPF(out_len, used, output + used, out_len - used,
+		"[Dyn CCK TSSI Avg Num] en=%d, Avg num=0x%x\n", (u8)var[1],(u8)var[2]);	
 	} else {
 		PDM_SNPF(out_len, used, output + used, out_len - used,
 			 "[Set] Error\n");
@@ -309,7 +378,8 @@ void phydm_ra_mask_report_h2c_trigger(void *dm_void,
 
 	phydm_fw_trace_en_h2c(dm, true, 1, 2, trig_rpt->macid);
 
-	trig_rpt->ra_mask_rpt_stamp = ra_tab->ra_mask_rpt_stamp;
+	/*Avoid the problem that the trigger's stamp is always less then result's stamp*/
+	trig_rpt->ra_mask_rpt_stamp = ra_tab->ra_mask_rpt_stamp + 1;
 }
 void phydm_ra_mask_report_c2h_result(void *dm_void, struct ra_mask_rpt *rpt)
 {
@@ -764,6 +834,9 @@ void phydm_rate_adaptive_mask_init(void *dm_void)
 	ra_t->ldpc_thres = 35;
 	ra_t->up_ramask_cnt = 0;
 	ra_t->up_ramask_cnt_tmp = 0;
+	ra_t->ra_mask_force_update = 0;
+	ra_t->max_sup_rate = ODM_MAXRATE;
+	ra_t->ra_ramask_byrssi = 1;
 }
 
 void phydm_refresh_rate_adaptive_mask(void *dm_void)
@@ -852,12 +925,16 @@ void phydm_show_sta_info(void *dm_void, char input[][16], u32 *_used,
 			 "Rate_ID:%d, RSSI_LV:%d, ra_bw:%d, SGI_en:%d\n",
 			 ra->rate_id, ra->rssi_level, ra->ra_bw_mode,
 			 ra->is_support_sgi);
-
+#if (DM_ODM_SUPPORT_TYPE & (ODM_WIN | ODM_CE | ODM_AP))
 		PDM_SNPF(out_len, used, output + used, out_len - used,
 			 "VHT_en:%d, Wireless_set=0x%x, sm_ps=%d\n",
 			 ra->is_vht_enable, sta->support_wireless_set,
 			 sta->sm_ps);
-
+#else
+		PDM_SNPF(out_len, used, output + used, out_len - used,
+			 "VHT_en:%d, Wireless_set=0x%x\n",
+			 ra->is_vht_enable, sta->support_wireless_set);
+#endif
 		PDM_SNPF(out_len, used, output + used, out_len - used,
 			 "Dis{RA, PT}={%d, %d}, TxRx:%d, Noisy:%d\n",
 			 ra->disable_ra, ra->disable_pt, ra->txrx_state,
@@ -939,6 +1016,7 @@ u64 phydm_get_bb_mod_ra_mask(void *dm_void, u8 sta_idx)
 	struct phydm_iot_center	*iot_table = &dm->iot_table;
 	struct cmn_sta_info *sta = dm->phydm_sta_info[sta_idx];
 	struct ra_sta_info *ra = NULL;
+	struct ra_table *ra_t = &dm->dm_ra_table;
 	enum channel_width bw = 0;
 	enum wireless_set wrls_mode = 0;
 #if (DM_ODM_SUPPORT_TYPE == ODM_AP)
@@ -947,6 +1025,7 @@ u64 phydm_get_bb_mod_ra_mask(void *dm_void, u8 sta_idx)
 	u8 tx_stream_num = 1;
 	u8 rssi_lv = 0;
 	u64 ra_mask_bitmap = 0;
+	u64 ra_mask_before_rssi_lv = 0;
 
 	if (is_sta_active(sta)) {
 		ra = &sta->ra_info;
@@ -962,13 +1041,18 @@ u64 phydm_get_bb_mod_ra_mask(void *dm_void, u8 sta_idx)
 
 	PHYDM_DBG(dm, DBG_RA, "macid=%d ori_RA_Mask= 0x%llx\n", sta->mac_id,
 		  ra_mask_bitmap);
+#if (DM_ODM_SUPPORT_TYPE & (ODM_WIN | ODM_CE | ODM_AP))	
 	PHYDM_DBG(dm, DBG_RA,
 		  "wireless_mode=0x%x, tx_ss=%d, BW=%d, MimoPs=%d, rssi_lv=%d\n",
 		  wrls_mode, tx_stream_num, bw, sta->sm_ps, rssi_lv);
 
 	if (sta->sm_ps == SM_PS_STATIC) /*@mimo_ps_enable*/
 		tx_stream_num = 1;
-
+#else
+	PHYDM_DBG(dm, DBG_RA,
+		  "wireless_mode=0x%x, tx_ss=%d, BW=%d, rssi_lv=%d\n",
+		  wrls_mode, tx_stream_num, bw, rssi_lv);
+#endif
 	/*@[Modify RA Mask by Wireless Mode]*/
 
 	if (wrls_mode == WIRELESS_CCK) { /*@B mode*/
@@ -976,8 +1060,30 @@ u64 phydm_get_bb_mod_ra_mask(void *dm_void, u8 sta_idx)
 	} else if (wrls_mode == WIRELESS_OFDM) { /*@G mode*/
 		ra_mask_bitmap &= 0x00000ff0;
 	} else if (wrls_mode == (WIRELESS_CCK | WIRELESS_OFDM)) { /*@BG mode*/
+#ifdef PHYDM_IC_JGR3_ARLO_SUPPORT
+		ra_mask_bitmap &= 0x00000ff7;
+#else
 		ra_mask_bitmap &= 0x00000ff5;
+#endif
 	} else if (wrls_mode == (WIRELESS_CCK | WIRELESS_OFDM | WIRELESS_HT)) {
+#ifdef PHYDM_IC_JGR3_ARLO_SUPPORT
+		/*N_2G*/
+		if (tx_stream_num == 1) {
+			if (bw == CHANNEL_WIDTH_40)
+				ra_mask_bitmap &= 0x000ff017;
+			else
+				ra_mask_bitmap &= 0x000ff007;
+		} else if (tx_stream_num == 2) {
+			if (bw == CHANNEL_WIDTH_40)
+				ra_mask_bitmap &= 0x0ffff017;
+			else
+				ra_mask_bitmap &= 0x0ffff007;
+		} else if (tx_stream_num == 3) {
+			ra_mask_bitmap &= 0xffffff017;
+		} else {
+			ra_mask_bitmap &= 0xffffffff017;
+		}
+#else
 		/*N_2G*/
 		if (tx_stream_num == 1) {
 			if (bw == CHANNEL_WIDTH_40)
@@ -994,6 +1100,7 @@ u64 phydm_get_bb_mod_ra_mask(void *dm_void, u8 sta_idx)
 		} else {
 			ra_mask_bitmap &= 0xffffffff015;
 		}
+#endif
 	} else if (wrls_mode == (WIRELESS_OFDM | WIRELESS_HT)) { /*N_5G*/
 
 		if (tx_stream_num == 1) {
@@ -1012,6 +1119,24 @@ u64 phydm_get_bb_mod_ra_mask(void *dm_void, u8 sta_idx)
 			ra_mask_bitmap &= 0xffffffff010;
 		}
 	} else if (wrls_mode == (WIRELESS_CCK | WIRELESS_OFDM | WIRELESS_VHT)) {
+#ifdef PHYDM_IC_JGR3_ARLO_SUPPORT	
+		/*@AC_2G*/
+		if (tx_stream_num == 1)
+			ra_mask_bitmap &= 0x003ff017;
+		else if (tx_stream_num == 2)
+			ra_mask_bitmap &= 0xfffff017;
+		else if (tx_stream_num == 3)
+			ra_mask_bitmap &= 0x3fffffff017;
+		else /*@AC_4SS 2G*/
+			ra_mask_bitmap &= 0x000ffffffffff017;
+		if (bw == CHANNEL_WIDTH_20) {
+		/* @AC 20MHz doesn't support MCS9 except 3SS & 6SS*/
+			ra_mask_bitmap &= 0x0007ffff7fdff017;
+		} else if (bw == CHANNEL_WIDTH_80) {
+		/* @AC 80MHz doesn't support 3SS MCS6*/
+			ra_mask_bitmap &= 0x000fffbffffff017;
+		}
+#else
 		/*@AC_2G*/
 		if (tx_stream_num == 1)
 			ra_mask_bitmap &= 0x003ff015;
@@ -1028,6 +1153,7 @@ u64 phydm_get_bb_mod_ra_mask(void *dm_void, u8 sta_idx)
 		/* @AC 80MHz doesn't support 3SS MCS6*/
 			ra_mask_bitmap &= 0x000fffbffffff015;
 		}
+#endif
 	} else if (wrls_mode == (WIRELESS_OFDM | WIRELESS_VHT)) { /*@AC_5G*/
 
 		if (tx_stream_num == 1)
@@ -1061,8 +1187,31 @@ u64 phydm_get_bb_mod_ra_mask(void *dm_void, u8 sta_idx)
 		return ra_mask_bitmap;
 	}
 #endif
-	/*@[Modify RA Mask by RSSI level]*/
-	if (wrls_mode != WIRELESS_CCK) {
+
+	ra_mask_before_rssi_lv = ra_mask_bitmap;
+
+	if (ra_t->max_sup_rate != ODM_MAXRATE && wrls_mode != WIRELESS_CCK) {
+
+		if (!ra_t->ra_ramask_byrssi)
+			ra_mask_bitmap &= 0xffffffffffffffff;
+		else if (rssi_lv == 0)
+			ra_mask_bitmap &= 0xffffffffffffffff;
+		else if (rssi_lv == 1)
+			ra_mask_bitmap &= 0xfffffffffffffff0;
+		else if (rssi_lv == 2)
+			ra_mask_bitmap &= 0xffffffffffffffe0;
+		else if (rssi_lv == 3)
+			ra_mask_bitmap &= 0xffffffffffffffc0;
+		else if (rssi_lv == 4)
+			ra_mask_bitmap &= 0xffffffffffffff80;
+		else if (rssi_lv >= 5)
+			ra_mask_bitmap &= 0xffffffffffffff00;
+
+		ra_mask_bitmap &= phydm_gen_bitmask(ra_t->max_sup_rate +1);
+		
+		PHYDM_DBG(dm, DBG_RA, "Mod by User & RSSI=0x%llx\n", ra_mask_bitmap);
+				
+	} else if (wrls_mode != WIRELESS_CCK) { /*@[Modify RA Mask by RSSI level]*/
 		if (iot_table->patch_id_40010700) {
 			ra_mask_bitmap &= (rssi_lv == 0 ?
 					  0xffffffffffffffff :
@@ -1070,7 +1219,9 @@ u64 phydm_get_bb_mod_ra_mask(void *dm_void, u8 sta_idx)
 			return ra_mask_bitmap;
 		}
 
-		if (rssi_lv == 0)
+		if (!ra_t->ra_ramask_byrssi)
+			ra_mask_bitmap &= 0xffffffffffffffff;
+		else if (rssi_lv == 0)
 			ra_mask_bitmap &= 0xffffffffffffffff;
 		else if (rssi_lv == 1)
 			ra_mask_bitmap &= 0xfffffffffffffff0;
@@ -1082,8 +1233,25 @@ u64 phydm_get_bb_mod_ra_mask(void *dm_void, u8 sta_idx)
 			ra_mask_bitmap &= 0xffffffffffff8f80;
 		else if (rssi_lv >= 5)
 			ra_mask_bitmap &= 0xffffffffffff0f00;
+
+		PHYDM_DBG(dm, DBG_RA, "Mod by RSSI=0x%llx\n", ra_mask_bitmap);
 	}
-	PHYDM_DBG(dm, DBG_RA, "Mod by RSSI=0x%llx\n", ra_mask_bitmap);
+
+	/*Avoid empty HT/VHT ramask when HT/VHT mode is enabled*/
+	if ((ra_mask_bitmap >> 12) == 0x0) {
+		ra_mask_bitmap |= (ra_mask_before_rssi_lv & 0xfffffffffffff000);
+		PHYDM_DBG(dm, DBG_RA,
+			 "Empty HT/VHT ramask! Bypass HT/VHT ramask_by_rssi\n");
+	}
+
+	/*Avoid empty legacy ramask after foolproof of HT/VHT mode*/
+	if (ra_mask_bitmap == 0x0) {
+		ra_mask_bitmap |= (ra_mask_before_rssi_lv & 0xfff);
+		PHYDM_DBG(dm, DBG_RA,
+			 "Empty ramask! Bypass a/b/g ramask_by_rssi\n");
+	}
+
+	PHYDM_DBG(dm, DBG_RA, "Final ramask=0x%llx\n", ra_mask_bitmap);
 
 	return ra_mask_bitmap;
 }
@@ -1168,6 +1336,8 @@ u8 phydm_get_rate_id(void *dm_void, u8 sta_idx)
 			rate_id_idx = PHYDM_GN_N2SS;
 		else if (tx_stream_num == 3)
 			rate_id_idx = PHYDM_ARFR5_N_3SS;
+		else if (tx_stream_num == 4)
+			rate_id_idx = PHYDM_ARFR7_N_4SS;
 	} else if (wrls_mode == (WIRELESS_CCK | WIRELESS_OFDM | WIRELESS_HT)) {
 	 /*@BGN mode*/
 		if (bw == CHANNEL_WIDTH_40) {
@@ -1462,6 +1632,11 @@ void phydm_ra_mask_watchdog(void *dm_void)
 	if (ra_t->up_ramask_cnt >= FORCED_UPDATE_RAMASK_PERIOD) {
 		ra_t->up_ramask_cnt = 0;
 		force_ra_mask_en = true;
+	} else if (ra_t->ra_mask_force_update) {
+		ra_t->up_ramask_cnt = 0;
+		force_ra_mask_en = true;
+		ra_t->ra_mask_force_update = 0;
+		PHYDM_DBG(dm, DBG_RA_MASK, "Force Update RA Mask\n");
 	}
 
 	for (sta_idx = 0; sta_idx < ODM_ASSOCIATE_ENTRY_NUM; sta_idx++) {
@@ -1522,7 +1697,7 @@ void phydm_ra_mask_watchdog(void *dm_void)
 
 			ra->rssi_level = rssi_lv_new;
 
-			ra_mask = phydm_get_bb_mod_ra_mask(dm, sta_idx);
+			ra_mask = phydm_get_bb_mod_ra_mask(dm, sta_idx);		
 
 			if (ra_t->record_ra_info)
 				ra_t->record_ra_info(dm, sta_idx, sta, ra_mask);
@@ -2044,6 +2219,16 @@ void phydm_ra_info_init(void *dm_void)
 	ra_tab->dynamic_rrsr_en = false;
 	ra_tab->ra_trigger_mode = 1; // default TBTT RA
 	ra_tab->ra_tx_cls_th = 255;
+#if (RTL8735B_SUPPORT == 1)
+	if (dm->support_ic_type == ODM_RTL8735B) {
+		ra_tab->ra_tssi_dyn_avg_en = 1;
+		ra_tab->ra_tssi_dyn_avg_num = 3;
+	}
+#else
+	ra_tab->ra_tssi_dyn_avg_en = 0;
+	ra_tab->ra_tssi_dyn_avg_num = 15;
+#endif
+	
 #if (RTL8822B_SUPPORT == 1)
 	if (dm->support_ic_type == ODM_RTL8822B) {
 		u32 ret_value;

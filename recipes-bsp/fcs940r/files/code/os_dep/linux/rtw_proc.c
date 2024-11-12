@@ -3003,7 +3003,7 @@ static int proc_get_tx_power_idx(struct seq_file *m, void *v)
 		RTW_INFO("%s path=%u, rs=%u\n", __func__, path, rs);
 
 	if (path == RF_PATH_A && rs == CCK)
-		dump_tx_power_idx_title(m, adapter, bw, cch, 0);
+		dump_tx_power_idx_title(m, adapter, bw, 0, 0);
 	dump_tx_power_idx_by_path_rs(m, adapter, path, rs, bw, cch, 0);
 
 	return 0;
@@ -3082,7 +3082,7 @@ static int proc_get_txpwr_total_dbm(struct seq_file *m, void *v)
 	u8 cch = hal_data->current_channel;
 
 	if (rs == CCK)
-		dump_txpwr_total_dbm_title(m, adapter, bw, cch, 0);
+		dump_txpwr_total_dbm_title(m, adapter, bw, 0, 0);
 	dump_txpwr_total_dbm_by_rs(m, adapter, rs, bw, cch, 0);
 
 	return 0;
