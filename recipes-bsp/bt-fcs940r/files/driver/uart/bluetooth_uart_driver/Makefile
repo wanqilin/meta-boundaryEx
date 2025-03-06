@@ -5,9 +5,9 @@
 
 #else
 	PWD := $(shell pwd)
-	KVER := $(shell uname -r)
+	KVER := ${KERNEL_VERSION}
 	# KDIR := /lib/modules/$(KVER)/build
-	KDIR := $(KBUILD_OUTPUT) #yocto imx.8 support
+	KDIR := /mnt/disk2/nxp/boundarydeviceEx/build/tmp/work-shared/nitrogen8mp/kernel-source #yocto imx.8 support
 
 all:
 	echo $(KVER)

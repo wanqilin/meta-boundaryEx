@@ -2,7 +2,7 @@ FW_USB_DIR := /lib/firmware
 FW_UART_DIR := /lib/firmware/rtlbt
 FW_SDIO_DIR := /lib/firmware/rtl_bt
 RTKBT_FIRMWARE_DIR := rtkbt-firmware/lib/firmware
-MDL_DIR	:= /lib/modules/$(shell uname -r)
+MDL_DIR	:= /lib/modules/${KERNEL_VERSION}
 DRV_DIR	:= $(MDL_DIR)/kernel/drivers/bluetooth
 
 

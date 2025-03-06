@@ -1,0 +1,32 @@
+From cead7d09eb4d823ffc5622e31a64a4532db0280e Mon Sep 17 00:00:00 2001
+From: wanqilin <ddswanqilin@163.com>
+Date: Thu, 20 Feb 2025 21:05:36 +0800
+Subject: [PATCH] add boundary_defconfig fcs940r_bt
+
+---
+ arch/arm64/configs/boundary_defconfig | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/configs/boundary_defconfig b/arch/arm64/configs/boundary_defconfig
+index 1701c53a00dd..1c9fa1cb7448 100644
+--- a/arch/arm64/configs/boundary_defconfig
++++ b/arch/arm64/configs/boundary_defconfig
+@@ -152,11 +152,11 @@ CONFIG_BT_BNEP_PROTO_FILTER=y
+ CONFIG_BT_HIDP=y
+ # CONFIG_BT_LE is not set
+ CONFIG_BT_LEDS=y
+-CONFIG_BT_HCIBTUSB=m
++# CONFIG_BT_HCIBTUSB=m
+ CONFIG_BT_HCIBTUSB_MTK=y
+-CONFIG_BT_HCIUART=m
+-CONFIG_BT_HCIUART_BCSP=y
+-CONFIG_BT_HCIUART_ATH3K=y
++# CONFIG_BT_HCIUART=m
++# CONFIG_BT_HCIUART_BCSP=y
++# CONFIG_BT_HCIUART_ATH3K=y
+ CONFIG_BT_HCIUART_BCM=y
+ CONFIG_BT_HCIUART_QCA=y
+ CONFIG_BT_HCIVHCI=y
+-- 
+2.34.1
+

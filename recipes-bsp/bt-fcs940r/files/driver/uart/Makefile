@@ -1,5 +1,5 @@
 DRV_SRC_DIR	:= bluetooth_uart_driver
-MDL_DIR	:= /lib/modules/$(shell uname -r)
+MDL_DIR	:= /lib/modules/${KERNEL_VERSION}
 DRV_DIR	:= $(MDL_DIR)/kernel/drivers/bluetooth
 
 TOOL_SRC_DIR := rtk_hciattach
@@ -11,7 +11,7 @@ install:
 	make -C $(DRV_SRC_DIR)
 	#mv -n $(DRV_DIR)/hci_uart.ko $(FW_DIR)/hci_uart.bk
 	cp -f $(DRV_SRC_DIR)/hci_uart.ko $(DRV_DIR)/hci_uart.ko
-	depmod -a $(shell uname -r)
+	depmod -a ${KERNEL_VERSION}
 	make -C $(DRV_SRC_DIR) clean
 	echo "make hci_uart_driver success!"
 	make -C $(TOOL_SRC_DIR)
@@ -21,7 +21,7 @@ install:
 
 uninstall:
 	mv -f $(FW_DIR)/hci_uart.bk $(DRV_DIR)/hci_uart.ko
-	depmod -a $(shell uname -r)
+	depmod -a ${KERNEL_VERSION}
 	- rm -f $(FW_DIR)/hci_uart.bk
 	rm -f $(FW_DIR)/rtlbt_fw
 	rm -f $(FW_DIR)/rtlbt_config
