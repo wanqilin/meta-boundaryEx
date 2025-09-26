@@ -7,8 +7,8 @@ EXTRA_OEMAKE:append:mx8mp-nxp-bsp = " CONFIG_VIDEO_IMX219=n"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
-SRC_URI += "file://0001-add-boundary_defconfig-fcs940r_wifi.patch \
-            file://0001-add-boundary_defconfig-fcs940r_bt.patch \
-            file://0001-close-bt-uart_rtscts.patch"
+# SRC_URI += "file://0001-add-boundary_defconfig-fcs940r_wifi.patch \
+#             file://0001-add-boundary_defconfig-fcs940r_bt.patch \
+#             file://0001-close-bt-uart_rtscts.patch"
 
 

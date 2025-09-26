@@ -1,0 +1,22 @@
+[Unit]
+Description=Load hci_uart Bluetooth Module
+After=sysinit.target
+
+[Service]
+Type=forking
+PIDFile=/var/run/rtk-bluetooth.pid
+ExecStart=/usr/sbin/rtk_hciattach -n -s 115200 /dev/ttymxc0 rtk_h5
+ExecStartPost=/bin/sleep 5
+ExecStartPost=/bin/sh -c 'echo $MAINPID > /var/run/rtk-bluetooth.pid'
+ExecStartPost=/usr/bin/hciconfig hci0 up
+ExecStartPost=/usr/bin/hciconfig -a
+TimeoutStartSec=30
+Restart=on-failure
+RestartSec=5
+User=root
+
+ExecStop=/usr/bin/kill -TERM $MAINPID
+ExecStopPost=/bin/rm -f /var/run/rtk-bluetooth.pid
+
+[Install]
+WantedBy=multi-user.target
